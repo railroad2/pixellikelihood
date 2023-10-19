@@ -1,0 +1,6 @@
+[submodule "cambfast"]
+	path = cambfast
+	url = https://github.com/railroad2/cambfast.git
+[submodule "pixelcov"]
+	path = pixelcov
+	url = https://github.com/railroad2/pixelcov.git
