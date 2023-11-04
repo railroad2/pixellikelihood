@@ -11,73 +11,13 @@ from gbpipe.gbmap import makegbmask
 from gbpipe.spectrum import get_spectrum_noise
 from gen_fg import gen_fg
 
+map_path = '/home/kmlee/works/cmb/forecast/maps/'
+
 ## pixel noise level
 def pnl(NET, fsky, Ndet, Y, t):
     wp = np.array(NET)**2 * 4*np.pi*(10800/np.pi)**2*np.array(fsky) / (np.array(Ndet)*np.array(Y)*t)
     return wp ** 0.5 
 
-## parameters for fitting
-    """
-    nside = 8
-    ntest = 1000
-
-    lmin = 0
-    lmax = 3*nside -1
-
-    As0 = 2.092e-09
-    tau0 = 0.05
-    r0 = 0.05
-
-    c00 = 1.473
-    c10 = -0.4625
-
-    lamb = 1.0e-12
-    rseed = 10
-
-    tilt = 20
-    latOT = 61.7 
-    #mmin = 30.13 #latOT - tilt - 10
-    #mmax = 93.32 #latOT + tilt + 10 
-    mmin = latOT - tilt - 10
-    mmax = latOT + tilt + 10 
-
-    nomask = 0
-    gbmask = 1
-    galmask = 1
-    syncmask = 0
-    bwmask = 1
-
-    inifile = '../ini/planck_2018.ini'
-
-    maskfname = f'/home/kmlee/cmb/forecast/maps/mask/mymask_nside{nside:04d}_equ.fits'
-
-    ###############################
-    ### noise level
-    ###############################
-
-    #NET = 310
-    #NET += np.array([202, 310])
-    #NET = [830, 1023]
-    #NET = [310, 530]
-    NET = [1000, 2782]
-    #NET = [10, 27]
-
-    fsky = np.array([0.528, 0.452])
-    Ndet = np.array([6*23, 1*23]) * 4
-    #Ndet = np.array([310, 290]) #* 4
-    #Ndet = np.array([510, 90]) 
-    #Ndet = np.array([330, 121]) 
-
-    Y = 0.7
-    t = 3 * 365 * 86400
-
-    wp0 = pnl(NET, fsky, Ndet, Y, t) 
-    c145 = 1.495
-    wp1 = ((wp0[0]**2 * c145**2 + wp0[1]**2 * (1-c145)**2)**0.5)
-    #print (f'wp0 = {wp0}')
-    #print (f'wp1 = {wp1}')
-    """
- 
 
 def binmask(m, cut=0.8):
     m1 = m.copy()
@@ -115,16 +55,14 @@ def mymask(maskfname=None, coord='equ', nside=8,
 
     ## galactic mask
     if galmask:
-        #fn_galmask = f'/home/kmlee/cmb/forecast/maps/mask/mask_gal_ns{nside0}_{coord}.fits'
-        fn_galmask = f'/home/kmlee/cmb/forecast/maps/mask/mask_gal_ns{nside0}_{coord}.fits'
+        fn_galmask = f'{map_path}/mask/mask_gal_ns{nside0}_{coord}.fits'
         mask_gal = hp.read_map(fn_galmask, verbose=0, dtype=None)
     else:
         mask_gal = np.ones(12*nside0*nside0) 
 
     ## synchrotron mask
     if syncmask:
-        #fn_syncmask = f'/home/kmlee/cmb/forecast/maps/mask/mask_sync_ns{nside0}_{coord}.fits'
-        fn_syncmask = f'/home/kmlee/cmb/forecast/maps/mask/mask_sync_ns{nside0}_{coord}.fits'
+        fn_syncmask = f'{map_path}/mask/mask_sync_ns{nside0}_{coord}.fits'
         mask_sync = hp.read_map(fn_syncmask, verbose=0, dtype=None)
     else:
         mask_sync = np.ones(12*nside0*nside0)
@@ -164,6 +102,8 @@ def mymask(maskfname=None, coord='equ', nside=8,
 def outfilename(prefix, nside=8, ntest=1000, lamb=1.0e-12, rseed_in=42, wp_in=None, mask_in=None, lmin=None, verbose=0):
     date = datetime.datetime.now().isoformat()[:10]
     if not os.path.isdir(f'../result_npz/{date}'):
+        if not os.path.isdir(f"../result_npz"):
+            os.mkdir(f'../result_npz/')
         os.mkdir(f'../result_npz/{date}')
 
     ofname = f'../result_npz/{date}/'
@@ -217,7 +157,6 @@ def foregroundmaps_pysm(nside, freqs=[], GBres=True, Ndetscale=1, Null=False, re
     sfreqs = str(freqs).replace(" ", "")
     sfreqs = sfreqs[1:-1]
     
-    #tmpfname = f'./temp/old/fg_nside{nside}_freq{sfreqs}'
     tmpfname = f'./temp/fg_nside{nside}_freq{sfreqs}'
 
     if Null:
@@ -240,8 +179,6 @@ def foregroundmaps_pysm(nside, freqs=[], GBres=True, Ndetscale=1, Null=False, re
         dat = np.load(tmpfname)
         fgs = dat['fgs']
         return fgs
-
-    map_path = '/home/kmlee/cmb/forecast/maps/'
 
     fgs = gen_fg(freqs, nside)
 
@@ -307,7 +244,6 @@ def foregroundmaps_pysm(nside, freqs=[], GBres=True, Ndetscale=1, Null=False, re
 
 
 def foregroundmaps2_linearcomb(nside):
-    map_path = '/home/kmlee/cmb/forecast/maps/'
 
     ## sync and dust components individually
     map_sync145 = hp.ud_grade(hp.read_map(map_path+'foregrounds/sync/sync_145_TCMB_fwhm1_nside1024_equ.fits', field=(0,1,2)), nside_out=nside)
@@ -321,7 +257,6 @@ def foregroundmaps2_linearcomb(nside):
 
 
 def foregroundmaps2_linearcomb_resmadam(nside):
-    map_path = '/home/kmlee/cmb/forecast/maps/'
 
     ## sync and dust components individually
     map_sync145 = hp.ud_grade(hp.read_map(map_path+'foregrounds/sync/sync_145_TCMB_fwhm1_nside1024_equ.fits', field=(0,1,2)), nside_out=nside)
@@ -337,7 +272,6 @@ def foregroundmaps2_linearcomb_resmadam(nside):
 
 
 def foregroundmaps2_cmbfgres(nside):
-    map_path = '/home/kmlee/cmb/forecast/maps/'
     map_res145  = hp.ud_grade(hp.read_map(map_path+'madam/combined/map145cmb_madam_combined_residue.fits', field=(0,1,2)), nside_out=nside)
     map_res220  = hp.ud_grade(hp.read_map(map_path+'madam/combined/map220cmb_madam_combined_residue.fits', field=(0,1,2)), nside_out=nside)
     map_res145fg  = hp.ud_grade(hp.read_map(map_path+'madam/combined/map145fg_madam_combined_residue.fits', field=(0,1,2)), nside_out=nside)
@@ -350,7 +284,6 @@ def foregroundmaps2_cmbfgres(nside):
 
 ## madam foregrounds
 def foregroundmaps2_madam(nside):
-    map_path    = '/home/kmlee/cmb/forecast/maps/'
     map_fg145   = hp.read_map(map_path+'madam/combined/map145fg_madam_combined_map.fits', field=None, verbose=0, dtype=None)
     map_fg220   = hp.read_map(map_path+'madam/combined/map220fg_madam_combined_map.fits', field=None, verbose=0, dtype=None)
     #map_fg145  = hp.read_map(map_path+'madam/combined/combined/madam_20200727_1fnoise_fg_145__combined_map.fits', field=None, verbose=0, dtype=None)
@@ -368,7 +301,6 @@ def foregroundmaps2_madam(nside):
 
 
 def foregroundmaps3_madam(nside):
-    map_path = '/home/kmlee/cmb/forecast/maps/'
     map_fg145 = hp.read_map(map_path+'madam/combined/map145fg_madam_combined_map.fits', field=None, verbose=0, dtype=None)
     map_fg220 = hp.read_map(map_path+'madam/combined/map220fg_madam_combined_map.fits', field=None, verbose=0, dtype=None)
     #map_fg145 = hp.read_map(map_path+'madam/combined/combined/madam_20200727_1fnoise_fg_145__combined_map.fits', field=None, verbose=0, dtype=None)
@@ -386,7 +318,6 @@ def foregroundmaps3_madam(nside):
 
 
 def foregroundmaps3_madam_fg1fres(nside):
-    map_path = '/home/kmlee/cmb/forecast/maps/'
     map_fg145 = hp.read_map(map_path+'madam/combined/map145fg_madam_combined_map.fits', field=None, verbose=0, dtype=None)
     map_fg220 = hp.read_map(map_path+'madam/combined/map220fg_madam_combined_map.fits', field=None, verbose=0, dtype=None)
 
@@ -415,7 +346,6 @@ def foregroundmaps3_madam_fg1fres(nside):
 
 
 def foregroundmaps2_madam_1f(nside):
-    map_path = '/home/kmlee/cmb/forecast/maps/'
     map_fg145 = hp.read_map(map_path+'madam/combined/combined/madam_20200727_1fnoise_fg_145__combined_map.fits', field=None, verbose=0, dtype=None)
     map_fg220 = hp.read_map(map_path+'madam/combined/combined/madam_20200727_1fnoise_fg_220__combined_map.fits', field=None, verbose=0, dtype=None)
     bmap_noise145 = hp.read_map(map_path+'madam/combined/combined/madam_20200727_1fnoise_noise_145__combined_bmap.fits', field=None, verbose=0, dtype=None)
@@ -439,7 +369,6 @@ def foregroundmaps2_madam_1f(nside):
 
 
 def foregroundmaps2_dustonly(nside):
-    map_path = '/home/kmlee/cmb/forecast/maps/'
     map_fg145   = hp.ud_grade(hp.read_map(map_path+'foregrounds/dust/dust_145_TCMB_fwhm1_nside1024_equ.fits', field=(0,1,2)), nside_out=nside)
     map_fg220   = hp.ud_grade(hp.read_map(map_path+'foregrounds/dust/dust_220_TCMB_fwhm1_nside1024_equ.fits', field=(0,1,2)), nside_out=nside)
     map_res145  = hp.ud_grade(hp.read_map(map_path+'madam/combined/map145fg_madam_combined_residue.fits', field=(0,1,2)), nside_out=nside)
@@ -451,7 +380,6 @@ def foregroundmaps2_dustonly(nside):
 
 
 def foregroundmaps2_dustonly_nores(nside):
-    map_path = '/home/kmlee/cmb/forecast/maps/'
     map_fg145   = hp.ud_grade(hp.read_map(map_path+'foregrounds/dust/dust_145_TCMB_fwhm1_nside1024_equ.fits', field=(0,1,2)), nside_out=nside)
     map_fg220   = hp.ud_grade(hp.read_map(map_path+'foregrounds/dust/dust_220_TCMB_fwhm1_nside1024_equ.fits', field=(0,1,2)), nside_out=nside)
     map_res145  = hp.ud_grade(hp.read_map(map_path+'madam/combined/map145fg_madam_combined_residue.fits', field=(0,1,2)), nside_out=nside)
@@ -463,7 +391,6 @@ def foregroundmaps2_dustonly_nores(nside):
 
 
 def foregroundmaps2_dustsync(nside):
-    map_path = '/home/kmlee/cmb/forecast/maps/'
     map_sync145 = hp.ud_grade(hp.read_map(map_path+'foregrounds/sync/sync_145_TCMB_fwhm1_nside1024_equ.fits', field=(0,1,2)), nside_out=nside)
     map_sync220 = hp.ud_grade(hp.read_map(map_path+'foregrounds/sync/sync_220_TCMB_fwhm1_nside1024_equ.fits', field=(0,1,2)), nside_out=nside)
     map_dust145 = hp.ud_grade(hp.read_map(map_path+'foregrounds/dust/dust_145_TCMB_fwhm1_nside1024_equ.fits', field=(0,1,2)), nside_out=nside)
@@ -477,7 +404,6 @@ def foregroundmaps2_dustsync(nside):
 
 
 def foregroundmaps2_dustsync_nores(nside):
-    map_path = '/home/kmlee/cmb/forecast/maps/'
     map_sync145 = hp.ud_grade(hp.read_map(map_path+'foregrounds/sync/sync_145_TCMB_fwhm1_nside1024_equ.fits', field=(0,1,2)), nside_out=nside)
     map_sync220 = hp.ud_grade(hp.read_map(map_path+'foregrounds/sync/sync_220_TCMB_fwhm1_nside1024_equ.fits', field=(0,1,2)), nside_out=nside)
     map_dust145 = hp.ud_grade(hp.read_map(map_path+'foregrounds/dust/dust_145_TCMB_fwhm1_nside1024_equ.fits', field=(0,1,2)), nside_out=nside)
@@ -491,7 +417,6 @@ def foregroundmaps2_dustsync_nores(nside):
 
 
 def noisemaps_madam(nside):
-    map_path = '/home/kmlee/cmb/forecast/maps/'
     map_noi145 = hp.read_map(map_path+'madam/combined/noise145_madam_combined_map.fits', field=None, verbose=0, dtype=None)
     map_noi220 = hp.read_map(map_path+'madam/combined/noise220_madam_combined_map.fits', field=None, verbose=0, dtype=None)
     map_noi145[np.where(map_noi145==hp.UNSEEN)] = 0
@@ -503,7 +428,6 @@ def noisemaps_madam(nside):
 
 
 def noisemaps_madam_1f(nside, scale=1):
-    map_path = '/home/kmlee/cmb/forecast/maps/'
     map_noi145 = hp.read_map(map_path+'madam/combined/combined/madam_20200727_1fnoise_noise_145__combined_map.fits', field=None, verbose=0, dtype=None)
     map_noi220 = hp.read_map(map_path+'madam/combined/combined/madam_20200727_1fnoise_noise_220__combined_map.fits', field=None, verbose=0, dtype=None)
     map_noi145[np.where(map_noi145==hp.UNSEEN)] = 0
@@ -519,7 +443,6 @@ def noisemaps_madam_1f(nside, scale=1):
 
 
 def noisemaps_madam_white(nside, scale=1):
-    map_path = '/home/kmlee/cmb/forecast/maps/'
     map_noi145 = hp.read_map(map_path+'madam/combined/combined/madam_nshort5000_test_wnoise_GBnoise_145__combined_map.fits', field=None, verbose=0, dtype=None)
     map_noi220 = hp.read_map(map_path+'madam/combined/combined/madam_nshort5000_test_wnoise_GBnoise_220__combined_map.fits', field=None, verbose=0, dtype=None)
     map_noi145[np.where(map_noi145==hp.UNSEEN)] = 0
